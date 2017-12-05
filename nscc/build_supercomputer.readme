@@ -1,0 +1,172 @@
+﻿Please check the following sites for additional information:
+General information: http://oss.deltares.nl/web/delft3d/source-code
+FAQ                : http://oss.deltares.nl/web/delft3d/faq
+Compile forum      : http://oss.deltares.nl/web/delft3d/general/-/message_boards?_19_mbCategoryId=200432
+Copyright (C)  Stichting Deltares, 2011-2017.
+
+
+Compiling on NSCC Centos6.6 Linux
+====================
+check the complier installed on the supercomputer, make sure the compiler you used for the delft3d and tools is the same compiler
+0) Make sure you have a good internet connection.
+
+1) prepare the compiling environment. In your home directory, type in:
+
+     module load subversion
+     module load libtool
+     module load lex 
+     module load yacc 
+     module load gcc/5.1.0 (other version may have problem be careful!)
+    
+
+      svn co https://svn.oss.deltares.nl/repos/delft3d/trunk delft3d
+
+      cd ~/delft3dtrunk/src
+
+     #edit the build_ubuntu1604.sh to fit your own system!!!! here I replace by a new file build_supercomputer.sh
+
+
+
+      
+
+2) In your home directory(for my cluster /home/users/nus/e0022672), go to Downloads and make a directory, e.g. libraries for installation all the libraries. type in:
+      cd ~/Downloads
+      mkdir libraries
+      
+3) Download the libraries codes and compile them.
+     
+ #install autoconf
+    
+  wget http://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz
+    
+  v=2.69
+    
+  tar -xf autoconf-${v}.tar.gz
+  
+    cd autoconf-${v}
+   
+   ./configure --prefix=$HOME/usr/local
+   
+   make install
+
+   
+ 
+  #install uuid 
+   
+   wget https://sourceforge.net/projects/libuuid/files/latest/download
+   
+   tar -xf libuuid-1.0.3
+    
+  cd libuuid-1.0.3
+   
+   export UUID= export UUID="/home/users/nus/e0022672/Downloads/libraries/libuuid"
+  
+    ./configure --prefix=$UUID
+    
+  make 
+   
+   make install
+
+  
+
+    export PATH=$PATH:/home/users/nus/e0022672/Downloads/libraries/libuuid/include/uuid
+    
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/users/nus/e0022672/Downloads/libraries/libuuid/lib
+  
+    export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/home/users/nus/e0022672/Downloads/libraries/libuuid/lib/pkgconfig
+      
+      # Install zlib
+      v=1.2.8  
+      wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/zlib-${v}.tar.gz
+      tar -xf zlib-${v}.tar.gz && cd zlib-${v}
+      ./configure --prefix=$HOME/usr/local
+      # make check install
+      make install
+      cd ..
+      
+      
+      # Install HDF5
+      v=1.8.13
+      wget ftp://ftp.unidata.ucar.edu/pub/netcdf/netcdf-4/hdf5-${v}.tar.gz
+      tar -xf hdf5-${v}.tar.gz && cd hdf5-${v}
+      echo "# HDF5 libraries for Delft3D" 
+      export HDF5_DIR="/home/users/nus/e0022672/Downloads/libraries/hdf5-${v}" 
+      ./configure --enable-shared --enable-hl --prefix=$HDF5_DIR
+      make -j 2 # 2 for number of process to be used
+      make install
+      cd ..
+      
+      # Install Netcdf
+      v=4.4.1
+      wget http://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-${v}.tar.gz
+      tar -xf netcdf-${v}.tar.gz && cd netcdf-${v}
+      echo "# NETCDF4 libraries for Delft3D" 
+      export NETCDF4_DIR="/home/users/nus/e0022672/Downloads/libraries/netcdf_4.4" 
+      CPPFLAGS=-I$HDF5_DIR/include LDFLAGS=-L$HDF5_DIR/lib ./configure --enable-netcdf-4 --enable-shared --enable-dap --prefix=$NETCDF4_DIR
+      # make check
+      make 
+      make install
+      cd ..
+      
+      
+      export PATH=$PATH:$NETCDF4_DIR/bin
+      export LD_LIBRARY_PATH=$NETCDF4_DIR/lib:$LD_LIBRARY_PATH
+      export PKG_CONFIG_PATH=$NETCDF4_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+      
+      
+      # Install Netcdf-fortran
+      v=4.4.4
+      wget http://www.unidata.ucar.edu/downloads/netcdf/ftp/netcdf-fortran-${v}.tar.gz
+      tar -xf netcdf-fortran-${v}.tar.gz && cd netcdf-fortran-${v}
+      CPPFLAGS=-I$NETCDF4_DIR/include LDFLAGS=-L$NETCDF4_DIR/lib LD_LIBRARY_PATH=$NETCDF4_DIR/lib:$LD_LIBRARY_PATH ./configure --prefix=$NETCDF4_DIR
+      # make check
+      make 
+      make install
+      cd ..
+      
+      
+      # Install mpi
+      v=3.2
+      wget http://www.mpich.org/static/downloads/${v}/mpich-${v}.tar.gz
+      tar -xzf mpich-${v}.tar.gz
+      cd mpich-${v}
+      export MPICH2_3_2_DIR="/home/users/nus/e0022672/Downloads/libraries/mpich3"
+      ./configure --prefix=$MPICH2_3_2_DIR
+      make
+      make install
+
+      cd ..
+      
+      export PATH=$PATH:$MPICH2_3_2_DIR/bin
+      export LD_LIBRARY_PATH=$MPICH2_3_2_DIR/lib:$LD_LIBRARY_PATH
+      export PKG_CONFIG_PATH=$MPICH2_3_2_DIR/lib/pkgconfig:$PKG_CONFIG_PATH
+
+4) Go back to ~/delft3dtrunk/src, build DELFT3D source code, type in:
+      ./build_supercomputer.sh -gnu -64bit
+      
+5) After finishing the compiling, there must be a bin directory in ~/delft3dtrunk. You probably have to copy some mpi libraries to the bin directory.
+      cp /home/users/nus/e0022672/Downloads/libraries/mpich3/lib/* /home/users/nus/e0022672/delft3d/bin/lnx64/flow2d3d/bin
+      cp /home/users/nus/e0022672/Downloads/libraries/mpich3/bin/* /home/users/nus/e0022672/delft3d/bin/lnx64/flow2d3d/bin
+      cd /home/users/nus/e0022672/delft3d/bin/lnx64/flow2d3d/bin
+      chmod a+x *
+      
+Then it should work!
+
+
+Running examples without GUI
+============================  
+In directory "examples\01_standard": 
+- Execute script "run_flow2d3d.sh"
+  Parallel:
+  - Depending on your system settings, you might need to change the script "run_flow2d3d_parallel.sh"
+  - Execute script "run_flow2d3d_parallel.sh" 
+
+REMARK:
+1) you can get the version of libraries of netcdf, netcdf-fortran, mpich2 by changing the v variable in step 3.
+
+
+
+13 December 2016
+xiawei@u.nus.edu     
+      
+
